@@ -36,5 +36,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AionUi-win-x64-portable
-          path: packages/desktop/out/*.zip
+          path: out/*.zip
           if-no-files-found: error
