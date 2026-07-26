@@ -1,5 +1,72 @@
 # Changelog
 
+## [2.1.41](https://github.com/iOfficeAI/AionUi/compare/v2.1.40...v2.1.41) (2026-07-24)
+
+### Desktop
+
+#### Features
+
+- **notification:** notify on agent turn completion when window is unfocused (desktop) (#3715)
+- **shortcuts:** add common UI bindings (#3675)
+
+#### Bug Fixes
+
+- **team:** extend ITeamRunEvent.source with system_lifecycle (#3721)
+
+### Core ([v0.1.52](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.52))
+
+#### Features
+
+- **project:** wire project-bind side branch into owner creation (#676)
+
+#### Bug Fixes
+
+- **agent:** unify CLI probe pipeline with classified failures and adaptive slow-probe recheck (#678)
+- **channel:** quiet WeChat poll log noise with state-transition logging and exponential backoff (#683)
+- **process:** allow whitespace in workspace cwd segments (#674)
+- **session:** restore codex slash commands + recover dead resume anchors on the direct-CLI path (#679)
+- **team:** converge system/lifecycle wakes into a team run (#680)
+
+---
+
+## [2.1.40](https://github.com/iOfficeAI/AionUi/compare/v2.1.39...v2.1.40) (2026-07-23)
+
+### Desktop
+
+#### Features
+
+- **session-port:** AionUi frontend support for the direct-CLI claude/codex session path (#3572)
+- **assistants:** support reordering enabled assistants (#3696)
+- **permissions:** redesign request panel (#3676)
+- **team:** dormant teammate UI with lazy warmup and per-member retry-start (#3712)
+- **desktop:** support image avatars for custom agents (#3667)
+- **cron:** add scheduled-task action to history (#3674)
+- **team:** show running state in sidebar (#3666)
+
+#### Bug Fixes
+
+- **i18n:** add discoverability hints to input placeholders (#3658)
+- **chat:** restore ACP file change panels (#3665)
+- **chat:** bound HorizontalFileList to conversation width to prevent overflow (#3659)
+- **update:** allow minimizing active downloads (#3663)
+
+### Core ([v0.1.51](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.51))
+
+#### Features
+
+- **project:** add project-bind foundation (db + aionui-project) (#672)
+- **session-port:** route claude/codex through the direct-CLI SessionAgentTask (#609)
+- **team:** leader-only warmup with lazy teammate wakeup and per-member attach (#670)
+
+#### Bug Fixes
+
+- **acp:** harden grok startup environment and npx recovery (#662)
+- **cron:** use host timezone for conversation cron (#652)
+- **skills:** repair butler cron and doc drift (2026-07-22 audit) (#664)
+- **system:** release keep-awake on shutdown (#666)
+
+---
+
 ## [2.1.39](https://github.com/iOfficeAI/AionUi/compare/v2.1.38...v2.1.39) (2026-07-21)
 
 ### Desktop
