@@ -149,6 +149,53 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clean up portable build
+        if: success()
+        shell: pwsh
+        run: |
+          $unpackedDir = "out\win-unpacked"
+          Write-Host "Cleaning up portable build..."
+
+          # Remove source maps
+          Get-ChildItem -Path $unpackedDir -Recurse -Filter "*.map" -Force | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+
+          # Remove large packages not needed at runtime
+          $largePkgs = @(
+            "@img",
+            "@emnapi",
+            "@node-sqlite",
+            "sqlite3"
+          )
+          foreach ($pkg in $largePkgs) {
+            Get-ChildItem -Path $unpackedDir -Directory -Filter "$pkg*" -ErrorAction SilentlyContinue | ForEach-Object {
+              Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # Remove vendor directories (except needed ones)
+          Get-ChildItem -Path $unpackedDir -Recurse -Directory -Filter "vendor" -ErrorAction SilentlyContinue | ForEach-Object {
+            # Keep vendor for critical native modules
+            $parent = $_.Parent.Name
+            if ($parent -notin @("better-sqlite3", "bcrypt", "node-pty")) {
+              Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # Remove unnecessary files
+          $removeFiles = @("*.ps1", "*.bat", "*.cmd", "LICENSE*", "NOTICE*", "*.txt")
+          foreach ($pattern in $removeFiles) {
+            Get-ChildItem -Path $unpackedDir -Recurse -Filter $pattern -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          }
+
+          # Remove node_modules/.cache
+          Get-ChildItem -Path $unpackedDir -Directory -Filter ".cache" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+          # Show remaining size
+          $totalSize = (Get-ChildItem -Path $unpackedDir -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host "Cleaned size: $([math]::Round($totalSize, 1)) MB"
+        env:
+          CI: true
+
       - name: Create portable folder zip
         if: success()
         shell: pwsh
@@ -170,7 +217,19 @@ jobs:
           $tempZipDir = Join-Path $env:TEMP "aionui-zip-$$"
           New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
 
-          Copy-Item -Path "$unpackedDir\*" -Destination $tempZipDir -Recurse -Force
+          # Copy everything except node_modules/.cache and .git
+          $exclude = @(".git", "node_modules/.cache")
+          Get-ChildItem -Path $unpackedDir -Recurse | Where-Object {
+            $relPath = $_.FullName.Replace($unpackedDir, "").TrimStart("\")
+            $shouldExclude = $false
+            foreach ($ex in $exclude) {
+              if ($relPath -like "$ex*" -or $relPath -like "*\$ex*") {
+                $shouldExclude = $true
+                break
+              }
+            }
+            -not $shouldExclude
+          } | Copy-Item -Destination $tempZipDir -Recurse -Force
 
           Compress-Archive -Path "$tempZipDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
           Remove-Item -Path $tempZipDir -Recurse -Force
