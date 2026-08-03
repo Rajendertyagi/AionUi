@@ -133,10 +133,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Write-Host "Building Windows x64..."
-          node scripts/build-with-builder.js x64 --win --x64
+          # Suppress Rollup/Vite warnings about module directives
+          $env:NODE_OPTIONS = '--max-old-space-size=8192 --no-warnings'
+          node scripts/build-with-builder.js x64 --win --x64 2>&1 | Select-String -NotMatch "Module level directives" | ForEach-Object { Write-Host $_ }
           Write-Host "Build completed"
         env:
           AIONUI_BACKEND_ARCH: x64
+          NODE_OPTIONS: '--max-old-space-size=8192 --no-warnings'
           npm_config_arch: x64
           npm_config_target_arch: x64
           npm_config_runtime: electron
@@ -214,22 +217,25 @@ jobs:
           $zipPath = Join-Path $outDir $zipName
 
           Write-Host "Creating portable folder zip: $zipName"
+
+          # Use 7z to create zip (more reliable than Compress-Archive)
           $tempZipDir = Join-Path $env:TEMP "aionui-zip-$$"
           New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
 
-          # Copy everything except node_modules/.cache and .git
-          $exclude = @(".git", "node_modules/.cache")
-          Get-ChildItem -Path $unpackedDir -Recurse | Where-Object {
-            $relPath = $_.FullName.Replace($unpackedDir, "").TrimStart("\")
-            $shouldExclude = $false
-            foreach ($ex in $exclude) {
-              if ($relPath -like "$ex*" -or $relPath -like "*\$ex*") {
-                $shouldExclude = $true
-                break
-              }
+          # Copy all files preserving directory structure
+          $items = Get-ChildItem -Path $unpackedDir -Recurse
+          foreach ($item in $items) {
+            $relPath = $item.FullName.Substring($unpackedDir.Length).TrimStart('\')
+            $destPath = Join-Path $tempZipDir $relPath
+            $destDir = Split-Path $destPath -Parent
+            if (-not (Test-Path $destDir)) {
+              New-Item -ItemType Directory -Path $destDir -Force | Out-Null
             }
-            -not $shouldExclude
-          } | Copy-Item -Destination $tempZipDir -Recurse -Force
+            if ($item.PSIsContainer) {
+              continue
+            }
+            Copy-Item -Path $item.FullName -Destination $destPath -Force
+          }
 
           Compress-Archive -Path "$tempZipDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
           Remove-Item -Path $tempZipDir -Recurse -Force
