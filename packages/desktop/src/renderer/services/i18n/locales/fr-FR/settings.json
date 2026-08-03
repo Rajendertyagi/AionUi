@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Utilisée par",
     "detailUsedByEmpty": "Aucun assistant n’utilise encore cette compétence.",
     "detailBuiltinAssistant": "Intégré",
+    "detailFilesTitle": "Fichiers de la compétence",
+    "detailFilesError": "Impossible de charger les fichiers de cette compétence.",
+    "editViaChat": {
+      "buttonLabel": "Modifier via le chat",
+      "defaultPrompt": "J'aimerais améliorer ce Skill : {{skillName}}\n\nVeuillez examiner son contenu et m'aider à l'améliorer. Mes suggestions de modification sont :"
+    },
     "usedByCount": "Utilisée par {{count}} assistant(s)",
     "manageInHub": "Gérer dans le Centre de compétences",
     "recommend": "Recommander des compétences",
@@ -105,7 +111,8 @@
     "officialSkillsTitle": "Compétences officielles",
     "officialSkillsEmpty": "Aucune compétence officielle disponible.",
     "customHint": "Importez un dossier de compétences, un dossier parent ou un zip ; jusqu'à {{maxFileSize}} par fichier et {{maxTotalSize}} par compétence ; l'importation du même nom écrase la compétence existante.",
-    "officialHint": "Compétences officielles fournies avec AionUi — prêtes à l'emploi, en lecture seule et mises à jour à chaque version."
+    "officialHint": "Compétences officielles fournies avec AionUi — prêtes à l'emploi, en lecture seule et mises à jour à chaque version.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Authentification",
   "geminiApiKey": "Clé API Gemini",
@@ -1158,7 +1165,9 @@
       "command_missing": "Installez {{command}} et réessayez le test de connexion.",
       "managed_runtime_unavailable": "Réparez ou réinstallez {{resource}}, puis réessayez le test de connexion.",
       "auth_required": "L'agent est joignable mais nécessite une connexion. Connectez-vous via la CLI ou ajoutez la clé API requise sous Variables d'environnement, puis réessayez le test de connexion.",
-      "no_provider": "Aucun fournisseur de modèles n'est configuré. Ajoutez et activez un fournisseur dans Paramètres, puis réessayez le test de connexion."
+      "no_provider": "Aucun fournisseur de modèles n'est configuré. Ajoutez et activez un fournisseur dans Paramètres, puis réessayez le test de connexion.",
+      "version_drift_older": "La version installée d'agy est antérieure à celle validée pour cette intégration ; certaines fonctionnalités peuvent manquer. Une mise à jour est conseillée.",
+      "version_drift_newer": "La version installée d'agy est postérieure à celle validée pour cette intégration. Elle devrait fonctionner ; signalez tout comportement anormal."
     },
     "boundAssistantsTitle": "Assistants utilisant cet agent",
     "boundAssistantsCount": "{{count}} assistant(s)",

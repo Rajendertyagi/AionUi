@@ -39,6 +39,12 @@
     "detailUsedByTitle": "Usada por",
     "detailUsedByEmpty": "Nenhum assistente está usando esta habilidade ainda.",
     "detailBuiltinAssistant": "Integrado",
+    "detailFilesTitle": "Arquivos da habilidade",
+    "detailFilesError": "Não foi possível carregar os arquivos desta habilidade.",
+    "editViaChat": {
+      "buttonLabel": "Editar via chat",
+      "defaultPrompt": "Gostaria de melhorar esta Skill: {{skillName}}\n\nRevise o conteúdo e me ajude a aprimorá-lo. Minhas sugestões de alteração são:"
+    },
     "usedByCount": "Usada por {{count}} assistente(s)",
     "manageInHub": "Gerenciar na Central",
     "recommend": "Recomendar Habilidades",
@@ -105,7 +111,8 @@
     "officialSkillsEmpty": "Nenhuma habilidade oficial disponível.",
     "noSearchResults": "Nenhuma habilidade correspondente.",
     "customHint": "Importe uma pasta de habilidade, pasta principal ou zip; até {{maxFileSize}} por arquivo e {{maxTotalSize}} por habilidade; importar o mesmo nome substitui a habilidade existente.",
-    "officialHint": "Habilidades oficiais incluídas no AionUi — prontas para uso, somente leitura e atualizadas a cada versão."
+    "officialHint": "Habilidades oficiais incluídas no AionUi — prontas para uso, somente leitura e atualizadas a cada versão.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Autenticação",
   "geminiApiKey": "Chave de API Gemini",
@@ -1158,7 +1165,9 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "O agente está acessível, mas requer login. Faça login pelo CLI ou adicione a chave de API necessária em Variáveis de Ambiente e tente o teste de conexão novamente.",
-      "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente."
+      "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente.",
+      "version_drift_older": "A versão instalada do agy é anterior à verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar.",
+      "version_drift_newer": "A versão instalada do agy é mais recente que a verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
     },
     "boundAssistantsTitle": "Assistentes que usam este agente",
     "boundAssistantsCount": "{{count}} assistente(s)",
