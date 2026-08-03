@@ -1,198 +1,218 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+name: 'Build Portable Zip'
 
-protocols:
-  - name: AionUi Protocol
-    schemes:
-      - aionui
+permissions:
+  contents: write
+  actions: write
 
-asar:
-  smartUnpack: true
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: 'main'
+        type: string
 
-directories:
-  app: .
-  output: out
-  buildResources: resources
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  NODE_OPTIONS: '--max-old-space-size=8192'
 
-files:
-  - out/main/**/*
-  - out/preload/**/*
-  - out/renderer/**/*
-  - public/**/*
-  - package.json
-  - node_modules/better-sqlite3/**/*
-  - node_modules/bcrypt/**/*
-  - node_modules/node-pty/**/*
-  - node_modules/@mapbox/**/*
-  - node_modules/detect-libc/**/*
-  - node_modules/prebuild-install/**/*
-  - node_modules/node-gyp-build/**/*
-  - node_modules/bindings/**/*
-  - node_modules/@isaacs/cliui/**/*
-  - node_modules/ansi-regex/**/*
-  - node_modules/ansi-styles/**/*
-  - node_modules/strip-ansi/**/*
-  - node_modules/wrap-ansi/**/*
-  - node_modules/string-width/**/*
-  - node_modules/eastasianwidth/**/*
-  - node_modules/emoji-regex/**/*
-  - node_modules/open/**/*
-  - node_modules/default-browser/**/*
-  - node_modules/default-browser-id/**/*
-  - node_modules/run-applescript/**/*
-  - node_modules/bundle-name/**/*
-  - node_modules/web-tree-sitter/**/*
-  - node_modules/tree-sitter-bash/**/*
-  - '!**/node_modules/tree-sitter-*/prebuilds/**'
-  - '!**/node_modules/tree-sitter-*/build/**'
-  - '!**/node_modules/tree-sitter-*/src/**'
-  - '!**/node_modules/tree-sitter-*/**/*.node'
-  - '!**/node_modules/tree-sitter-*/**/*.obj'
-  - '!**/node_modules/tree-sitter-*/**/*.o'
-  - '!**/node_modules/tree-sitter-*/**/*.cc'
-  - '!**/node_modules/tree-sitter-*/**/*.c'
-  - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
-  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
-  - '!**/node_modules/*/{*.test.js,*.spec.js,*.test.ts,*.spec.ts}'
-  - '!packages/web-host/**'
-  - '!packages/web-cli/**'
-  - '!packages/shared-scripts/**'
-  - '!packages/desktop/src/**'
-  - '!**/node_modules/*.d.ts'
-  - '!**/node_modules/.bin'
-  - '!**/node_modules/*/{docs,documentation,doc}'
-  - '!**/{.DS_Store,.git,.gitignore,.gitattributes}'
-  - '!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}'
-  - '!**/{appveyor.yml,.travis.yml,circle.yml}'
-  - '!**/{npm-debug.log,yarn.lock,.yarn-metadata.json,yarn-error.log}'
-  - '!**/node_modules/{@img,@emnapi}/**'
-  - '!**/node_modules/@img/sharp-*/**'
-  - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
-  - '!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/**'
-  - '!**/*.jar'
-  - '!**/*.jnilib'
-  - '!**/node_modules/*/vendor/**'
-  - '!**/node_modules/@*/*/vendor/**'
-  - node_modules/better-sqlite3/vendor/**/*
-  - node_modules/bcrypt/vendor/**/*
-  - node_modules/node-pty/vendor/**/*
-  - '!**/*.map'
-  - '!**/out/**/react-syntax-highlighter_languages_highlight_*'
-  - 'out/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
-  - 'out/renderer/**/vendor-*.js'
-  - from: out/main/static
-    to: static
+jobs:
+  build-portable:
+    name: Build Portable Zip (Windows x64)
+    runs-on: windows-2022
 
-extraResources:
-  - from: public
-    to: .
-  - from: resources/app.png
-    to: app.png
-  - from: resources/bundled-aioncore
-    to: bundled-aioncore
-  - from: resources/hub
-    to: hub
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
 
-win:
-  target:
-    - nsis
-    - zip
-  icon: resources/app.ico
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+      - name: Get commit hash
+        id: commit
+        shell: bash
+        run: |
+          SHORT=$(git rev-parse --short HEAD)
+          echo "short=$SHORT" >> $GITHUB_OUTPUT
 
-nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
-  differentialPackage: false
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-mac:
-  target:
-    - dmg
-    - zip
-  icon: resources/app.icns
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
-  category: public.app-category.productivity
-  hardenedRuntime: true
-  gatekeeperAssess: false
-  entitlements: entitlements.plist
-  entitlementsInherit: entitlements.plist
-  dmg:
-    format: UDZO
-    internetEnabled: false
-    window:
-      width: 540
-      height: 380
-    contents:
-      - x: 140
-        y: 180
-        type: file
-      - x: 400
-        y: 180
-        type: link
-        path: /Applications
-  afterPack: scripts/afterPack.js
-  afterSign: scripts/afterSign.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
 
-linux:
-  target:
-    - deb
-  icon: resources/app.png
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
-  category: Utility
-  maintainer: aionui
-  vendor: aionui
-  synopsis: ${description}
-  description: ${description}
-  desktop:
-    entry:
-      Name: AionUi
-      Comment: ${description}
-      Icon: AionUi
-      Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-npmRebuild: false
-buildDependenciesFromSource: false
-nodeGypRebuild: false
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
 
-asarUnpack:
-  - '**/node_modules/better-sqlite3/**/*'
-  - '**/node_modules/bcrypt/**/*'
-  - '**/node_modules/node-pty/**/*'
-  - '**/node_modules/@mapbox/**/*'
-  - '**/node_modules/detect-libc/**/*'
-  - '**/node_modules/prebuild-install/**/*'
-  - '**/node_modules/node-gyp-build/**/*'
-  - '**/node_modules/bindings/**/*'
-  - '**/node_modules/open/**/*'
-  - '**/node_modules/default-browser/**/*'
-  - '**/node_modules/default-browser-id/**/*'
-  - '**/node_modules/run-applescript/**/*'
-  - '**/node_modules/bundle-name/**/*'
-  - '**/node_modules/web-tree-sitter/**/*'
-  - '**/node_modules/tree-sitter-bash/**/*'
-  - 'out/main/builtin-mcp-image-gen.js'
-  - 'out/main/team-mcp-stdio.js'
+      - name: Cache Electron artifacts
+        id: electron-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: electron-cache-windows-x64-${{ hashFiles('package.json', 'bun.lock') }}
+          restore-keys: |
+            electron-cache-windows-x64-
 
-compression: normal
-removePackageScripts: true
+      - name: Install dependencies
+        uses: nick-fields/retry@v4
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: bun install --frozen-lockfile
 
-electronDownload:
-  cache: ${env.ELECTRON_CACHE}
+      - name: Run postinstall
+        run: bun run postinstall || true
 
-publish:
-  provider: github
-  owner: iOfficeAI
-  repo: AionUi
-  publishAutoUpdate: true
-  releaseType: release
-  
-  
-  
+      - name: Setup Windows build environment
+        run: |
+          bun install --global node-gyp
+          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          vs-version: '17.0'
+
+      - name: Rebuild native modules for Electron
+        shell: pwsh
+        run: |
+          $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
+
+          Write-Host "Trying prebuild-install for better-sqlite3..."
+          $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=x64 --force 2>&1
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "prebuild-install succeeded"
+          } else {
+            Write-Host "prebuild-install failed, trying electron-rebuild..."
+            bunx electron-rebuild -f -w better-sqlite3
+          }
+
+          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+          if (Test-Path $sqliteNode) {
+            $size = [math]::Round((Get-Item $sqliteNode).Length / 1MB, 1)
+            Write-Host "better-sqlite3 found: $size MB"
+          } else {
+            Write-Error "better-sqlite3 native module not found"
+            exit 1
+          }
+        env:
+          npm_config_runtime: electron
+          npm_config_arch: x64
+          npm_config_target_arch: x64
+          npm_config_disturl: https://electronjs.org/headers
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+
+      - name: Prepare aioncore binary
+        shell: bash
+        run: node scripts/prepareAioncore.js
+        env:
+          AIONUI_BACKEND_ARCH: x64
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build with electron-builder
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Building Windows x64..."
+          node scripts/build-with-builder.js x64 --win --x64
+          Write-Host "Build completed"
+        env:
+          AIONUI_BACKEND_ARCH: x64
+          npm_config_arch: x64
+          npm_config_target_arch: x64
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create portable folder zip
+        if: success()
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $commit = "${{ steps.commit.outputs.short }}"
+          $outDir = "out"
+          $unpackedDir = Join-Path $outDir "win-unpacked"
+
+          if (-not (Test-Path $unpackedDir)) {
+            Write-Error "win-unpacked directory not found at $unpackedDir"
+            exit 1
+          }
+
+          $zipName = "AionUi-portable-${version}-windows-x64-${commit}.zip"
+          $zipPath = Join-Path $outDir $zipName
+
+          Write-Host "Creating portable folder zip: $zipName"
+          $tempZipDir = Join-Path $env:TEMP "aionui-zip-$$"
+          New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+
+          Copy-Item -Path "$unpackedDir\*" -Destination $tempZipDir -Recurse -Force
+
+          Compress-Archive -Path "$tempZipDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
+          Remove-Item -Path $tempZipDir -Recurse -Force
+
+          Write-Host "Zip created: $zipPath"
+          $zipSize = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+          Write-Host "Zip size: ${zipSize} MB"
+        env:
+          CI: true
+
+      - name: List build artifacts
+        if: success() || failure()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD ARTIFACTS"
+          echo "=========================================="
+          if [ -d "out" ]; then
+            ls -lh out/ || true
+          else
+            echo "No out directory found!"
+          fi
+
+      - name: Upload portable zip artifact
+        uses: actions/upload-artifact@v7
+        if: success()
+        with:
+          name: AionUi-portable-${{ steps.version.outputs.version }}-windows-x64
+          path: |
+            out/*.zip
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Build Portable Zip - Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ inputs.branch }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ steps.commit.outputs.short }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ steps.version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Output | Portable folder zip (win-unpacked) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
