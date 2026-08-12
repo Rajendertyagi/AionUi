@@ -131,37 +131,24 @@ jobs:
       - name: Patch Windows npm/npx wrappers
         shell: pwsh
         run: |
-          $nodeDir = Get-ChildItem "resources\bundled-aioncore\win32-x64\managed-resources\node" -Directory |
-            Where-Object { $_.Name -like 'node-v*-win-x64' } | Select-Object -First 1
+          $nodeDir = Get-ChildItem "resources\bundled-aioncore\win32-x64\managed-resources\node" -Directory | Where-Object { $_.Name -like 'node-v*-win-x64' } | Select-Object -First 1
           if (-not $nodeDir) {
             Write-Error "Could not find node runtime directory"
             exit 1
           }
           $runtimeDir = $nodeDir.FullName
           Write-Host "Patching npm/npx wrappers in $runtimeDir"
-
-          $wrappers = @{}
-          $wrappers['npm.cmd'] = @'
-@echo off
-node "%~dp0\node_modules\npm\bin\npm-cli.js" %*
-'@
-          $wrappers['npx.cmd'] = @'
-@echo off
-node "%~dp0\node_modules\npm\bin\npx-cli.js" %*
-'@
-
-          foreach ($entry in $wrappers.GetEnumerator()) {
-            $dest = Join-Path $runtimeDir $entry.Key
-            [System.IO.File]::WriteAllText($dest, $entry.Value, [System.Text.UTF8Encoding]::new($false))
-            Write-Host "Created $($entry.Key)"
-          }
-
-          $binDir = Join-Path $runtimeDir 'node_modules\npm\bin'
+          $npmContent = "@echo off`r`nnode `"${runtimeDir}\node_modules\npm\bin\npm-cli.js`" %*"
+          $npxContent = "@echo off`r`nnode `"${runtimeDir}\node_modules\npm\bin\npx-cli.js`" %*"
+          [System.IO.File]::WriteAllText("$runtimeDir\npm.cmd", $npmContent, [System.Text.UTF8Encoding]::new($false))
+          [System.IO.File]::WriteAllText("$runtimeDir\npx.cmd", $npxContent, [System.Text.UTF8Encoding]::new($false))
+          Write-Host "Created npm.cmd and npx.cmd"
+          $binDir = Join-Path $runtimeDir "node_modules\npm\bin"
           if (Test-Path $binDir) {
-            foreach ($entry in $wrappers.GetEnumerator()) {
-              $dest = Join-Path $binDir $entry.Key
-              [System.IO.File]::WriteAllText($dest, $entry.Value, [System.Text.UTF8Encoding]::new($false))
-            }
+            $npmBinContent = "@echo off`r`nnode `"npm-cli.js`" %*"
+            $npxBinContent = "@echo off`r`nnode `"npx-cli.js`" %*"
+            [System.IO.File]::WriteAllText("$binDir\npm.cmd", $npmBinContent, [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText("$binDir\npx.cmd", $npxBinContent, [System.Text.UTF8Encoding]::new($false))
             Write-Host "Patched node_modules/npm/bin/"
           }
 
