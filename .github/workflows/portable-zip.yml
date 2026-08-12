@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.branch }}
 
@@ -43,23 +43,23 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v7.0.0
         with:
           node-version: '22'
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version: latest
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.12'
 
       - name: Cache Electron artifacts
         id: electron-cache
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ${{ runner.temp }}/.cache/electron
@@ -95,13 +95,6 @@ jobs:
         run: |
           $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
 
-          # Remove bun-managed symlink so electron-rebuild targets node_modules/better-sqlite3
-          $bunLink = "node_modules\better-sqlite3"
-          if (Test-Path $bunLink) {
-            Write-Host "Removing bun symlink at $bunLink"
-            Remove-Item $bunLink -Force
-          }
-
           Write-Host "Trying prebuild-install for better-sqlite3..."
           $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=x64 --force 2>&1
           if ($LASTEXITCODE -eq 0) {
@@ -124,6 +117,7 @@ jobs:
           npm_config_arch: x64
           npm_config_target_arch: x64
           npm_config_disturl: https://electronjs.org/headers
+          npm_config_target: ${{ steps.version.outputs.version }}
           npm_config_build_from_source: true
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
@@ -238,7 +232,7 @@ jobs:
           fi
 
       - name: Upload portable zip artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         if: success()
         with:
           name: AionUi-portable-${{ steps.version.outputs.version }}-windows-x64
