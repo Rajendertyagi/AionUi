@@ -95,13 +95,20 @@ jobs:
         run: |
           $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
 
+          # Remove bun-managed symlink so electron-rebuild targets node_modules/better-sqlite3
+          $bunLink = "node_modules\better-sqlite3"
+          if (Test-Path $bunLink) {
+            Write-Host "Removing bun symlink at $bunLink"
+            Remove-Item $bunLink -Force
+          }
+
           Write-Host "Trying prebuild-install for better-sqlite3..."
           $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=x64 --force 2>&1
           if ($LASTEXITCODE -eq 0) {
             Write-Host "prebuild-install succeeded"
           } else {
-            Write-Host "prebuild-install failed, trying electron-rebuild..."
-            bunx electron-rebuild -f -w better-sqlite3
+            Write-Host "prebuild-install failed, falling back to electron-rebuild..."
+            bunx electron-rebuild --only better-sqlite3 --force --arch x64 --electron-version $electronVer
           }
 
           $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
@@ -117,6 +124,7 @@ jobs:
           npm_config_arch: x64
           npm_config_target_arch: x64
           npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
@@ -133,7 +141,6 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Write-Host "Building Windows x64..."
-          # Suppress Rollup/Vite warnings about module directives
           $env:NODE_OPTIONS = '--max-old-space-size=8192 --no-warnings'
           node scripts/build-with-builder.js x64 --win --x64 2>&1 | Select-String -NotMatch "Module level directives" | ForEach-Object { Write-Host $_ }
           Write-Host "Build completed"
@@ -158,42 +165,24 @@ jobs:
         run: |
           $unpackedDir = "out\win-unpacked"
           Write-Host "Cleaning up portable build..."
-
-          # Remove source maps
           Get-ChildItem -Path $unpackedDir -Recurse -Filter "*.map" -Force | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-
-          # Remove large packages not needed at runtime
-          $largePkgs = @(
-            "@img",
-            "@emnapi",
-            "@node-sqlite",
-            "sqlite3"
-          )
+          $largePkgs = @("@img", "@emnapi", "@node-sqlite", "sqlite3")
           foreach ($pkg in $largePkgs) {
             Get-ChildItem -Path $unpackedDir -Directory -Filter "$pkg*" -ErrorAction SilentlyContinue | ForEach-Object {
               Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
             }
           }
-
-          # Remove vendor directories (except needed ones)
           Get-ChildItem -Path $unpackedDir -Recurse -Directory -Filter "vendor" -ErrorAction SilentlyContinue | ForEach-Object {
-            # Keep vendor for critical native modules
             $parent = $_.Parent.Name
             if ($parent -notin @("better-sqlite3", "bcrypt", "node-pty")) {
               Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
             }
           }
-
-          # Remove unnecessary files
           $removeFiles = @("*.ps1", "*.bat", "*.cmd", "LICENSE*", "NOTICE*", "*.txt")
           foreach ($pattern in $removeFiles) {
             Get-ChildItem -Path $unpackedDir -Recurse -Filter $pattern -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
           }
-
-          # Remove node_modules/.cache
           Get-ChildItem -Path $unpackedDir -Directory -Filter ".cache" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-          # Show remaining size
           $totalSize = (Get-ChildItem -Path $unpackedDir -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
           Write-Host "Cleaned size: $([math]::Round($totalSize, 1)) MB"
         env:
@@ -207,22 +196,15 @@ jobs:
           $commit = "${{ steps.commit.outputs.short }}"
           $outDir = "out"
           $unpackedDir = Join-Path $outDir "win-unpacked"
-
           if (-not (Test-Path $unpackedDir)) {
             Write-Error "win-unpacked directory not found at $unpackedDir"
             exit 1
           }
-
           $zipName = "AionUi-portable-${version}-windows-x64-${commit}.zip"
           $zipPath = Join-Path $outDir $zipName
-
           Write-Host "Creating portable folder zip: $zipName"
-
-          # Use 7z to create zip (more reliable than Compress-Archive)
           $tempZipDir = Join-Path $env:TEMP "aionui-zip-$$"
           New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
-
-          # Copy all files preserving directory structure
           $items = Get-ChildItem -Path $unpackedDir -Recurse
           foreach ($item in $items) {
             $relPath = $item.FullName.Substring($unpackedDir.Length).TrimStart('\')
@@ -231,15 +213,11 @@ jobs:
             if (-not (Test-Path $destDir)) {
               New-Item -ItemType Directory -Path $destDir -Force | Out-Null
             }
-            if ($item.PSIsContainer) {
-              continue
-            }
+            if ($item.PSIsContainer) { continue }
             Copy-Item -Path $item.FullName -Destination $destPath -Force
           }
-
           Compress-Archive -Path "$tempZipDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
           Remove-Item -Path $tempZipDir -Recurse -Force
-
           Write-Host "Zip created: $zipPath"
           $zipSize = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
           Write-Host "Zip size: ${zipSize} MB"
