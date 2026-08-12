@@ -117,8 +117,6 @@ jobs:
           npm_config_arch: x64
           npm_config_target_arch: x64
           npm_config_disturl: https://electronjs.org/headers
-          npm_config_target: ${{ steps.version.outputs.version }}
-          npm_config_build_from_source: true
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
