@@ -128,6 +128,43 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Patch Windows npm/npx wrappers
+        shell: pwsh
+        run: |
+          $nodeDir = Get-ChildItem "resources\bundled-aioncore\win32-x64\managed-resources\node" -Directory |
+            Where-Object { $_.Name -like 'node-v*-win-x64' } | Select-Object -First 1
+          if (-not $nodeDir) {
+            Write-Error "Could not find node runtime directory"
+            exit 1
+          }
+          $runtimeDir = $nodeDir.FullName
+          Write-Host "Patching npm/npx wrappers in $runtimeDir"
+
+          $wrappers = @{}
+          $wrappers['npm.cmd'] = @'
+@echo off
+node "%~dp0\node_modules\npm\bin\npm-cli.js" %*
+'@
+          $wrappers['npx.cmd'] = @'
+@echo off
+node "%~dp0\node_modules\npm\bin\npx-cli.js" %*
+'@
+
+          foreach ($entry in $wrappers.GetEnumerator()) {
+            $dest = Join-Path $runtimeDir $entry.Key
+            [System.IO.File]::WriteAllText($dest, $entry.Value, [System.Text.UTF8Encoding]::new($false))
+            Write-Host "Created $($entry.Key)"
+          }
+
+          $binDir = Join-Path $runtimeDir 'node_modules\npm\bin'
+          if (Test-Path $binDir) {
+            foreach ($entry in $wrappers.GetEnumerator()) {
+              $dest = Join-Path $binDir $entry.Key
+              [System.IO.File]::WriteAllText($dest, $entry.Value, [System.Text.UTF8Encoding]::new($false))
+            }
+            Write-Host "Patched node_modules/npm/bin/"
+          }
+
       - name: Build with electron-builder
         shell: pwsh
         run: |
@@ -170,7 +207,7 @@ jobs:
               Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
             }
           }
-          $removeFiles = @("*.ps1", "*.bat", "*.cmd", "LICENSE*", "NOTICE*", "*.txt")
+          $removeFiles = @("*.ps1", "*.bat", "LICENSE*", "NOTICE*", "*.txt")
           foreach ($pattern in $removeFiles) {
             Get-ChildItem -Path $unpackedDir -Recurse -Filter $pattern -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
           }
